@@ -172,6 +172,19 @@ else
 endif
 endif
 
+ifeq ($(CONFIG_SENSORS_BMI085),y)
+  CSRCS += bmi085.c
+endif
+
+ifeq ($(CONFIG_SENSORS_BMI085),y)
+  CSRCS += bmi085_base.c
+ifeq ($(CONFIG_SENSORS_BMI085_UORB),y)
+  CSRCS += bmi085_uorb.c
+else
+  CSRCS += bmi085.c
+endif
+endif
+
 ifeq ($(CONFIG_SENSORS_BMM150),y)
   CSRCS += bmm150.c
 endif

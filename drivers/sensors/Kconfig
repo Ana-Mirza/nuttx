@@ -206,6 +206,60 @@ config SENSORS_BMG160
 	---help---
 		Enable driver support for the Bosch BMG160 gyroscope sensor.
 
+config SENSORS_BMI085
+	bool "Bosch BMI085 Inertial Measurement Sensor support"
+	default n
+	select I2C
+	---help---
+		Enable driver support for the Bosch BMI085 Inertial
+		Measurement sensor
+
+if SENSORS_BMI085
+
+config SENSORS_BMI085_UORB
+	bool "BMI085 UORB Interface"
+	default n
+	---help---
+		Enables Work with the UORB or Character Device interface.
+		If not set, the Character Device is used by default.
+
+choice
+	prompt "BMI085 Interface"
+	default SENSORS_BMI085_SPI
+
+config SENSORS_BMI085_I2C
+	bool "BMI085 I2C Interface"
+	select I2C
+	---help---
+		Enables support for the I2C interface
+
+config SENSORS_BMI085_SPI
+	bool "BMI085 SPI Interface"
+	select SPI
+	---help---
+		Enables support for the SPI interface
+
+endchoice # BMI085 Interface
+
+choice
+	prompt "I2C Address"
+	default BMI085_I2C_ADDR_68
+
+config BMI085_I2C_ADDR_68
+	bool "0x68"
+	---help---
+		Default address.
+		If SDO pin is pulled to GND, use 0x68
+
+config BMI085_I2C_ADDR_69
+	bool "0x69"
+	---help---
+		If SDO pin is pulled to VDDIO, use 0x69
+
+endchoice # I2C Address
+
+endif # SENSORS_BMI085
+
 config SENSORS_BMI160
 	bool "Bosch BMI160 Inertial Measurement Sensor support"
 	default n
