@@ -122,6 +122,18 @@ int board_spiflash_init(void);
 int board_i2c_init(void);
 #endif
 
+/****************************************************************************
+ * Name: bmi085
+ *
+ * Description:
+ *   Initialize and register the BMI085 device.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SENSORS_BMI085
+int esp32s3_bmi085_initialize(int devno, int busno);
+#endif
+
 #endif /* __ASSEMBLY__ */
 #endif /* __BOARDS_XTENSA_ESP32S3_ESP32S3_HECTORWATCH_SRC_ESP32S3_HECTORWATCH_H */
 #
