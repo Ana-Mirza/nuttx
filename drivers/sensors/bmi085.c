@@ -79,17 +79,8 @@ static void bmi085_set_normal_imu(FAR struct bmi085_dev_s *priv)
 {
 /* Set accel & gyro as normal mode. */
 
-bmi085_putreg8(priv, BMI085_CMD, ACCEL_PM_NORMAL);
-up_mdelay(30);
-bmi085_putreg8(priv, BMI085_CMD, GYRO_PM_NORMAL);
-up_mdelay(30);
-
 /* Set accel & gyro output data rate. */
 
-bmi085_putreg8(priv, BMI085_ACCEL_CONFIG,
-                ACCEL_NORMAL_AVG4 | ACCEL_ODR_100HZ);
-bmi085_putreg8(priv, BMI085_GYRO_CONFIG,
-                GYRO_NORMAL_MODE | GYRO_ODR_100HZ);
 }
 
 /****************************************************************************
@@ -125,12 +116,6 @@ FAR struct bmi085_dev_s *priv  = inode->i_private;
 
 /* Set suspend mode to each sensors. */
 
-bmi085_putreg8(priv, BMI085_CMD, ACCEL_PM_SUSPEND);
-up_mdelay(30);
-
-bmi085_putreg8(priv, BMI085_CMD, GYRO_PM_SUSPEND);
-up_mdelay(30);
-
 return OK;
 }
 
@@ -155,8 +140,6 @@ if (len < sizeof(struct accel_gyro_st_s))
     return 0;
     }
 
-bmi085_getregs(priv, BMI085_DATA_8, (FAR uint8_t *)buffer, 15);
-
 /* Adjust sensing time into 24 bit */
 
 p->sensor_time >>= 8;
@@ -169,19 +152,6 @@ static void bmi085_enable_stepcounter(FAR struct bmi085_dev_s *priv,
 {
 uint8_t val;
 
-val = bmi085_getreg8(priv, BMI085_STEP_CONFIG_1);
-if (enable)
-    {
-    val |= STEP_CNT_EN;
-    }
-else
-    {
-    val &= ~STEP_CNT_EN;
-    }
-
-bmi085_putreg8(priv, BMI085_STEP_CONFIG_1, val);
-
-sninfo("Step counter %sabled.\n", val & STEP_CNT_EN ? "en" : "dis");
 }
 
 /****************************************************************************
@@ -197,34 +167,6 @@ static int bmi085_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 FAR struct inode        *inode = filep->f_inode;
 FAR struct bmi085_dev_s *priv  = inode->i_private;
 int ret = OK;
-
-switch (cmd)
-    {
-    /* Enable bmi085 step counter. Arg: int value */
-
-    case SNIOC_ENABLESC:
-        {
-        bmi085_enable_stepcounter(priv, (int)arg);
-        }
-        break;
-
-    /* Read bmi085 step count. Arg:  int16_t* pointer */
-
-    case SNIOC_READSC:
-        {
-        int16_t *ptr = (FAR int16_t *)((uintptr_t)arg);
-
-        DEBUGASSERT(ptr != NULL);
-
-        *ptr = bmi085_getreg16(priv, BMI085_STEP_COUNT_0);
-        }
-        break;
-
-    default:
-        snerr("Unrecognized cmd: %d\n", cmd);
-        ret = -ENOTTY;
-        break;
-    }
 
 return ret;
 }
@@ -267,9 +209,9 @@ if (!priv)
 
 #ifdef CONFIG_SENSORS_BMI085_I2C
 priv->i2c = dev;
-priv->addr = BMI085_I2C_ADDR;
+priv->acc_addr = BMI085_ACC_I2C_ADDR;
+priv->gyro_addr = BMI085_GYRO_I2C_ADDR;
 priv->freq = BMI085_I2C_FREQ;
-
 #endif
 
 ret = bmi085_checkid(priv);
@@ -279,10 +221,6 @@ if (ret < 0)
     kmm_free(priv);
     return ret;
     }
-
-/* To avoid gyro wakeup it is required to write 0x00 to 0x6C */
-
-bmi085_putreg8(priv, BMI085_PMU_TRIGGER, 0);
 
 ret = register_driver(devpath, &g_bmi085fops, 0666, priv);
 if (ret < 0)

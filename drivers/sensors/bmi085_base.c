@@ -64,6 +64,7 @@ static void bmi085_configspi(FAR struct spi_dev_s *spi)
 /****************************************************************************
 * Public Functions
 ****************************************************************************/
+#define GET_FIELD(regname,value) ((value & regname##_MASK) >> regname##_POS)
 
 /****************************************************************************
 * Name: bmi085_getreg8
@@ -73,7 +74,7 @@ static void bmi085_configspi(FAR struct spi_dev_s *spi)
 *
 ****************************************************************************/
 
-uint8_t bmi085_getreg8(FAR struct bmi085_dev_s *priv, uint8_t regaddr)
+uint8_t bmi085_getreg8(FAR struct bmi085_dev_s *priv, uint8_t addr, uint8_t regaddr)
 {
   uint8_t regval = 0;
 
@@ -82,13 +83,13 @@ uint8_t bmi085_getreg8(FAR struct bmi085_dev_s *priv, uint8_t regaddr)
   int ret;
 
   msg[0].frequency = priv->freq;
-  msg[0].addr      = priv->accel_addr;
-  msg[0].flags     = I2C_M_NOSTOP;
+  msg[0].addr      = addr;
+  msg[0].flags     = 0;
   msg[0].buffer    = &regaddr;
   msg[0].length    = 1;
 
   msg[1].frequency = priv->freq;
-  msg[1].addr      = priv->accel_addr;
+  msg[1].addr      = addr;
   msg[1].flags     = I2C_M_READ;
   msg[1].buffer    = &regval;
   msg[1].length    = 1;
@@ -111,7 +112,7 @@ uint8_t bmi085_getreg8(FAR struct bmi085_dev_s *priv, uint8_t regaddr)
 *
 ****************************************************************************/
 
-void bmi085_putreg8(FAR struct bmi085_dev_s *priv, uint8_t regaddr,
+void bmi085_putreg8(FAR struct bmi085_dev_s *priv, uint8_t addr, uint8_t regaddr,
                     uint8_t regval)
 {
 #ifdef CONFIG_SENSORS_BMI085_I2C
@@ -123,7 +124,7 @@ void bmi085_putreg8(FAR struct bmi085_dev_s *priv, uint8_t regaddr,
   txbuffer[1] = regval;
 
   msg[0].frequency = priv->freq;
-  msg[0].addr      = priv->accel_addr;
+  msg[0].addr      = addr;
   msg[0].flags     = 0;
   msg[0].buffer    = txbuffer;
   msg[0].length    = 2;
@@ -144,7 +145,7 @@ void bmi085_putreg8(FAR struct bmi085_dev_s *priv, uint8_t regaddr,
 *
 ****************************************************************************/
 
-uint16_t bmi085_getreg16(FAR struct bmi085_dev_s *priv, uint8_t regaddr)
+uint16_t bmi085_getreg16(FAR struct bmi085_dev_s *priv, uint8_t addr, uint8_t regaddr)
 {
   uint16_t regval = 0;
 
@@ -153,13 +154,13 @@ uint16_t bmi085_getreg16(FAR struct bmi085_dev_s *priv, uint8_t regaddr)
   int ret;
 
   msg[0].frequency = priv->freq;
-  msg[0].addr      = priv->accel_addr;
+  msg[0].addr      = addr;
   msg[0].flags     = I2C_M_NOSTOP;
   msg[0].buffer    = &regaddr;
   msg[0].length    = 1;
 
   msg[1].frequency = priv->freq;
-  msg[1].addr      = priv->accel_addr;
+  msg[1].addr      = addr;
   msg[1].flags     = I2C_M_READ;
   msg[1].buffer    = (FAR uint8_t *)&regval;
   msg[1].length    = 2;
@@ -182,7 +183,7 @@ uint16_t bmi085_getreg16(FAR struct bmi085_dev_s *priv, uint8_t regaddr)
 *
 ****************************************************************************/
 
-void bmi085_getregs(FAR struct bmi085_dev_s *priv, uint8_t regaddr,
+void bmi085_getregs(FAR struct bmi085_dev_s *priv, uint8_t addr, uint8_t regaddr,
                     uint8_t *regval, int len)
 {
 #ifdef CONFIG_SENSORS_BMI085_I2C
@@ -190,13 +191,13 @@ void bmi085_getregs(FAR struct bmi085_dev_s *priv, uint8_t regaddr,
   int ret;
 
   msg[0].frequency = priv->freq;
-  msg[0].addr      = priv->accel_addr;
+  msg[0].addr      = addr;
   msg[0].flags     = I2C_M_NOSTOP;
   msg[0].buffer    = &regaddr;
   msg[0].length    = 1;
 
   msg[1].frequency = priv->freq;
-  msg[1].addr      = priv->accel_addr;
+  msg[1].addr      = addr;
   msg[1].flags     = I2C_M_READ;
   msg[1].buffer    = regval;
   msg[1].length    = len;
@@ -222,15 +223,25 @@ int bmi085_checkid(FAR struct bmi085_dev_s *priv)
 {
   uint8_t devid = 0;
 
-  /* Read device ID  */
+  /* Read Accelerometer device ID */
 
-  devid = bmi085_getreg8(priv, ACCEL_CHIP_ID_ADDR);
-  sninfo("devid: %04x\n", devid);
+  devid = bmi085_getreg8(priv, priv->acc_addr, ACCEL_CHIP_ID_ADDR);
+  sninfo("acc devid: %04x\n", devid);
 
-  if (devid != (uint16_t) DEVID)
+  if (devid != (uint16_t) ACC_DEVID)
     {
       /* ID is not Correct */
+      return -ENODEV;
+    }
 
+  /* Read Gyro device ID */
+
+  devid = bmi085_getreg8(priv, priv->gyro_addr, GYRO_CHIP_ID_ADDR);
+  sninfo("gyro devid: %04x\n", devid);
+
+  if (devid != (uint16_t) GYRO_DEVID)
+    {
+      /* ID is not Correct */
       return -ENODEV;
     }
 

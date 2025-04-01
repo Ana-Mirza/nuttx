@@ -44,7 +44,8 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define DEVID               0xd2
+#define ACC_DEVID           0x1f
+#define GYRO_DEVID          0x0f
 
 /* I2C  Address
 *
@@ -52,15 +53,11 @@
 *       and 0x19 for accelerometer
 */
 
-#ifdef CONFIG_BMI085_GYRO_I2C_ADDR_68
-#define BMI085_GYRO_I2C_ADDR     0x68
-#else
-#define BMI085_GYRO_I2C_ADDR     0x69
-#endif
-
-#ifdef CONFIG_BMI085_ACC_I2C_ADDR_18
+#ifdef CONFIG_BMI085_I2C_ADDR_68
+#define BMI085_GYRO_I2C_ADDR    0x68
 #define BMI085_ACC_I2C_ADDR     0x18
 #else
+#define BMI085_GYRO_I2C_ADDR    0x69
 #define BMI085_ACC_I2C_ADDR     0x19
 #endif
 
@@ -72,10 +69,10 @@
 
 /* Register 0x40 - ACCEL_CONFIG accel bandwidth */
 
-#define ACCEL_RANGE_2G = 0x00
-#define ACCEL_RANGE_4G = 0x01
-#define ACCEL_RANGE_8G = 0x02
-#define ACCEL_RANGE_16G = 0x03
+#define ACCEL_RANGE_2G  0x00
+#define ACCEL_RANGE_4G  0x01
+#define ACCEL_RANGE_8G  0x02
+#define ACCEL_RANGE_16G 0x03
 
 #define ACCEL_ODR_1600HZ_BW_145HZ  0x00
 #define ACCEL_ODR_800HZ_BW_230HZ   0x01
@@ -177,7 +174,7 @@
 #define ACCEL_ACCEL_DATA_ADDR       0x12
 #define ACCEL_TEMP_DATA_ADDR        0x22
 
-// Convert G to m/s/s
+/* Convert G to m/s/s */
 #define G 9.807f
 
 /****************************************************************************
@@ -260,14 +257,13 @@
 
 #define GYRO_DATA_ADDR             0x02
 
-// Convert deg/s to rad/s
-
+/* Convert deg/s to rad/s */
 #define D2R M_PI / 180.0f
 
 /****************************************************************************
  * BMI085 Constants
  ****************************************************************************/
-/* Constants */ 
+
 #define BMI085_ACC_DISABLE                 0
 #define BMI085_ACC_ENABLE                  1
 #define BMI085_ACC_DATA_SYNC_LEN           1
@@ -302,7 +298,7 @@ struct bmi085_dev_s
 {
 #ifdef CONFIG_SENSORS_BMI085_I2C
 FAR struct i2c_master_s *i2c; /* I2C interface */
-uint8_t accel_addr;                 /* I2C address */
+uint8_t acc_addr;                 /* I2C address */
 uint8_t gyro_addr;                 /* I2C address */
 int freq;                     /* Frequency <= 3.4MHz */
 
@@ -316,11 +312,11 @@ FAR struct spi_dev_s *spi;    /* SPI interface */
  * Public Function Prototypes
  ****************************************************************************/
 
-uint8_t bmi085_getreg8(FAR struct bmi085_dev_s *priv, uint8_t regaddr);
-void bmi085_putreg8(FAR struct bmi085_dev_s *priv, uint8_t regaddr,
+uint8_t bmi085_getreg8(FAR struct bmi085_dev_s *priv, uint8_t addr, uint8_t regaddr);
+void bmi085_putreg8(FAR struct bmi085_dev_s *priv, uint8_t addr, uint8_t regaddr,
                     uint8_t regval);
-uint16_t bmi085_getreg16(FAR struct bmi085_dev_s *priv, uint8_t regaddr);
-void bmi085_getregs(FAR struct bmi085_dev_s *priv, uint8_t regaddr,
+uint16_t bmi085_getreg16(FAR struct bmi085_dev_s *priv, uint8_t addr, uint8_t regaddr);
+void bmi085_getregs(FAR struct bmi085_dev_s *priv, uint8_t addr, uint8_t regaddr,
                     uint8_t *regval, int len);
 
 int bmi085_checkid(FAR struct bmi085_dev_s *priv);
