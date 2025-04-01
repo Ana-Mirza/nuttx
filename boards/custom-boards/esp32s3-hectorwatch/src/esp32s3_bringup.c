@@ -182,7 +182,7 @@ int esp32s3_bringup(void)
 #ifdef CONFIG_SENSORS_BMI085
   /* Configure BMI085 driver */
 
-  ret = esp32s3_bmi085_initialize(0, ESP32S3_I2C0);
+  ret = esp32s3_bmi085_initialize(ESP32S3_I2C0);
   if (ret < 0)
   {
     syslog(LOG_ERR,

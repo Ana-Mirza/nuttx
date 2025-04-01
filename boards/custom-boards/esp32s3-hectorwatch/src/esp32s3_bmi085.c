@@ -27,6 +27,7 @@
  #include <stdlib.h>
  #include <debug.h>
  #include <stdio.h>
+ 
  #include <assert.h>
  #include <nuttx/arch.h>
  #include <nuttx/board.h>
@@ -36,8 +37,6 @@
 
  #include "esp32s3_i2c.h"
  #include "esp32s3-hectorwatch.h"
- 
- #if defined(CONFIG_ESP32S3_I2C) && defined(CONFIG_SENSORS_BMI085)
  
  /****************************************************************************
   * Public Functions
@@ -50,7 +49,6 @@
   *   Initialize and register the BMI085 driver.
   *
   * Input Parameters:
-  *   devno - The device number, used to build the device path as /dev/pressN
   *   busno - The I2C bus number
   *
   * Returned Value:
@@ -58,12 +56,14 @@
   *
   ****************************************************************************/
  
- int esp32s3_bmi085_initialize(int devno, int busno)
+ int esp32s3_bmi085_initialize(int busno)
  {
     struct i2c_master_s *i2c;
-    char devpath[14];
+    char devpath[12];
   
     /* Initialize i2c bus */
+
+    sninfo("Initializing BMI085!\n");
   
     i2c = esp32s3_i2cbus_initialize(busno);
     if (i2c == NULL)
@@ -73,10 +73,10 @@
   
     /* Register the bmi085 sensor */
   
-    (void)snprintf(devpath, sizeof(devpath), "/dev/bmi085_%d", devno);
+    (void)snprintf(devpath, sizeof(devpath), "/dev/bmi085");
   
     return bmi085_register(devpath, i2c);
  }
  
- #endif /* CONFIG_BOARDCTL_BMI085 */
+/* CONFIG_BOARDCTL_BMI085 */
  

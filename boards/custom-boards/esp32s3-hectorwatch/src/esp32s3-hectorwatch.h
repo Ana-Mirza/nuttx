@@ -123,7 +123,7 @@ int board_i2c_init(void);
 #endif
 
 /****************************************************************************
- * Name: bmi085
+ * Name: esp32s3_bmi085_initialize
  *
  * Description:
  *   Initialize and register the BMI085 device.
@@ -131,7 +131,7 @@ int board_i2c_init(void);
  ****************************************************************************/
 
 #ifdef CONFIG_SENSORS_BMI085
-int esp32s3_bmi085_initialize(int devno, int busno);
+int esp32s3_bmi085_initialize(int busno);
 #endif
 
 #endif /* __ASSEMBLY__ */
