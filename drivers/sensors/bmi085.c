@@ -59,29 +59,13 @@ static int     bmi085_ioctl(FAR struct file *filep, int cmd,
 
 static const struct file_operations g_bmi085fops =
 {
-bmi085_open,     /* open */
-bmi085_close,    /* close */
-bmi085_read,     /* read */
-NULL,            /* write */
-NULL,            /* seek */
-bmi085_ioctl,    /* ioctl */
+  bmi085_open,     /* open */
+  bmi085_close,    /* close */
+  bmi085_read,     /* read */
+  NULL,            /* write */
+  NULL,            /* seek */
+  bmi085_ioctl,    /* ioctl */
 };
-
-/****************************************************************************
- * Name: bmi085_set_normal_imu
- *
- * Description:
- *   set bmi085 to normal IMU mode.
- *
- ****************************************************************************/
-
-static void bmi085_set_normal_imu(FAR struct bmi085_dev_s *priv)
-{
-/* Set accel & gyro as normal mode. */
-
-/* Set accel & gyro output data rate. */
-
-}
 
 /****************************************************************************
  * Name: bmi085_open
@@ -93,12 +77,13 @@ static void bmi085_set_normal_imu(FAR struct bmi085_dev_s *priv)
 
 static int bmi085_open(FAR struct file *filep)
 {
-FAR struct inode        *inode = filep->f_inode;
-FAR struct bmi085_dev_s *priv  = inode->i_private;
+  FAR struct inode        *inode = filep->f_inode;
+  FAR struct bmi085_dev_s *priv  = inode->i_private;
 
-bmi085_set_normal_imu(priv);
+  /* Set accel and gyro mode. */
+  bmi085_set_normal_imu(priv);
 
-return OK;
+  return OK;
 }
 
 /****************************************************************************
@@ -111,12 +96,17 @@ return OK;
 
 static int bmi085_close(FAR struct file *filep)
 {
-FAR struct inode        *inode = filep->f_inode;
-FAR struct bmi085_dev_s *priv  = inode->i_private;
+  FAR struct inode        *inode = filep->f_inode;
+  FAR struct bmi085_dev_s *priv  = inode->i_private;
 
-/* Set suspend mode to each sensors. */
+  /* Set suspend mode to each sensors. */
+  bmi085_putreg8(priv, priv->acc_addr, ACCEL_PWR_CNTRL_ADDR, ACCEL_DISABLE_CMD);
+  up_mdelay(30);
 
-return OK;
+  bmi085_putreg8(priv, priv->gyro_addr, GYRO_LPM1, GYRO_PWR_SUSPEND);
+  up_mdelay(30);
+
+  return OK;
 }
 
 /****************************************************************************
@@ -130,28 +120,11 @@ return OK;
 static ssize_t bmi085_read(FAR struct file *filep, FAR char *buffer,
                         size_t len)
 {
-FAR struct inode        *inode = filep->f_inode;
-FAR struct bmi085_dev_s *priv  = inode->i_private;
-FAR struct accel_gyro_st_s *p = (FAR struct accel_gyro_st_s *)buffer;
+  FAR struct inode        *inode = filep->f_inode;
+  FAR struct bmi085_dev_s *priv  = inode->i_private;
+  FAR struct accel_gyro_st_s *p = (FAR struct accel_gyro_st_s *)buffer;
 
-if (len < sizeof(struct accel_gyro_st_s))
-    {
-    snerr("Expected buffer size is %zu\n", sizeof(struct accel_gyro_st_s));
-    return 0;
-    }
-
-/* Adjust sensing time into 24 bit */
-
-p->sensor_time >>= 8;
-
-return len;
-}
-
-static void bmi085_enable_stepcounter(FAR struct bmi085_dev_s *priv,
-                                    int enable)
-{
-uint8_t val;
-
+  return len;
 }
 
 /****************************************************************************
@@ -164,11 +137,11 @@ uint8_t val;
 
 static int bmi085_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 {
-FAR struct inode        *inode = filep->f_inode;
-FAR struct bmi085_dev_s *priv  = inode->i_private;
-int ret = OK;
+  FAR struct inode        *inode = filep->f_inode;
+  FAR struct bmi085_dev_s *priv  = inode->i_private;
+  int ret = OK;
 
-return ret;
+  return ret;
 }
 
 /****************************************************************************
@@ -197,40 +170,40 @@ int bmi085_register(FAR const char *devpath, FAR struct i2c_master_s *dev)
 int bmi085_register(FAR const char *devpath, FAR struct spi_dev_s *dev)
 #endif
 {
-FAR struct bmi085_dev_s *priv;
-int ret;
+  FAR struct bmi085_dev_s *priv;
+  int ret;
 
-priv = (FAR struct bmi085_dev_s *)kmm_malloc(sizeof(struct bmi085_dev_s));
-if (!priv)
-    {
-    snerr("Failed to allocate instance\n");
-    return -ENOMEM;
-    }
+  priv = (FAR struct bmi085_dev_s *)kmm_malloc(sizeof(struct bmi085_dev_s));
+  if (!priv)
+      {
+      snerr("Failed to allocate instance\n");
+      return -ENOMEM;
+      }
 
-#ifdef CONFIG_SENSORS_BMI085_I2C
-priv->i2c = dev;
-priv->acc_addr = BMI085_ACC_I2C_ADDR;
-priv->gyro_addr = BMI085_GYRO_I2C_ADDR;
-priv->freq = BMI085_I2C_FREQ;
-#endif
+  #ifdef CONFIG_SENSORS_BMI085_I2C
+  priv->i2c = dev;
+  priv->acc_addr = BMI085_ACC_I2C_ADDR;
+  priv->gyro_addr = BMI085_GYRO_I2C_ADDR;
+  priv->freq = BMI085_I2C_FREQ;
+  #endif
 
-ret = bmi085_checkid(priv);
-if (ret < 0)
-    {
-    snerr("Wrong Device ID!\n");
-    kmm_free(priv);
-    return ret;
-    }
+  ret = bmi085_checkid(priv);
+  if (ret < 0)
+      {
+      snerr("Wrong Device ID!\n");
+      kmm_free(priv);
+      return ret;
+      }
 
-ret = register_driver(devpath, &g_bmi085fops, 0666, priv);
-if (ret < 0)
-    {
-    snerr("Failed to register driver: %d\n", ret);
-    kmm_free(priv);
-    }
+  ret = register_driver(devpath, &g_bmi085fops, 0666, priv);
+  if (ret < 0)
+      {
+      snerr("Failed to register driver: %d\n", ret);
+      kmm_free(priv);
+      }
 
-sninfo("BMI085 driver loaded successfully!\n");
-return OK;
+  sninfo("BMI085 driver loaded successfully!\n");
+  return OK;
 }
 
 #endif /* CONFIG_SENSORS_BMI085 */

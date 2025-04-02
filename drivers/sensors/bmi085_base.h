@@ -67,35 +67,20 @@
  * Accelerometer Definitions
  ****************************************************************************/
 
-/* Register 0x40 - ACCEL_CONFIG accel bandwidth */
+/* Register 0x40 - ACCEL_CONFIG accel bandwidth and ODR */
 
-#define ACCEL_RANGE_2G  0x00
-#define ACCEL_RANGE_4G  0x01
-#define ACCEL_RANGE_8G  0x02
-#define ACCEL_RANGE_16G 0x03
+#define ACCEL_OSR4      (8 << 4)
+#define ACCEL_OSR2      (9 << 4)
+#define ACCEL_NORMAL_AVG4    (10 << 4)
 
-#define ACCEL_ODR_1600HZ_BW_145HZ  0x00
-#define ACCEL_ODR_800HZ_BW_230HZ   0x01
-#define ACCEL_ODR_800HZ_BW_140HZ   0x02
-#define ACCEL_ODR_800HZ_BW_80HZ    0x03
-#define ACCEL_ODR_400HZ_BW_145HZ   0x04
-#define ACCEL_ODR_400HZ_BW_75HZ    0x05
-#define ACCEL_ODR_400HZ_BW_40HZ    0x06
-#define ACCEL_ODR_200HZ_BW_80HZ    0x07
-#define ACCEL_ODR_200HZ_BW_38HZ    0x08
-#define ACCEL_ODR_200HZ_BW_20HZ    0x09
-#define ACCEL_ODR_100HZ_BW_40HZ    0x0A
-#define ACCEL_ODR_100HZ_BW_19HZ    0x0B
-#define ACCEL_ODR_100HZ_BW_10HZ    0x0C
-#define ACCEL_ODR_50HZ_BW_20HZ     0x0D
-#define ACCEL_ODR_50HZ_BW_9HZ      0x0E
-#define ACCEL_ODR_50HZ_BW_5HZ      0x0F
-#define ACCEL_ODR_25HZ_BW_10HZ     0x10
-#define ACCEL_ODR_25HZ_BW_5HZ      0x11
-#define ACCEL_ODR_25HZ_BW_3HZ      0x12
-#define ACCEL_ODR_12_5HZ_BW_5HZ    0x13
-#define ACCEL_ODR_12_5HZ_BW_2HZ    0x14
-#define ACCEL_ODR_12_5HZ_BW_1HZ    0x15
+#define ACCEL_ODR_12_5HZ    0x05
+#define ACCEL_ODR_25_HZ     0x06
+#define ACCEL_ODR_50_1HZ    0x07
+#define ACCEL_ODR_100_HZ    0x08
+#define ACCEL_ODR_200_HZ    0x09
+#define ACCEL_ODR_400_HZ    0x0A
+#define ACCEL_ODR_800_HZ    0x0B
+#define ACCEL_ODR_1600_HZ   0x0C
 
 /* Constants */
 #define ACCEL_CHIP_ID           0x1F
@@ -198,7 +183,7 @@
 #define GYRO_ODR_200HZ_BW_64HZ    0x86
 #define GYRO_ODR_100HZ_BW_32HZ    0x87
 
-/* Register 0x7e - CMD */
+/* Register 0x11 - CMD */
 
 #define GYRO_PWR_NORMAL        0x00
 #define GYRO_PWR_SUSPEND       0x80
@@ -256,6 +241,7 @@
 #define GYRO_INT4_DRDY_POS         7
 
 #define GYRO_DATA_ADDR             0x02
+#define GYRO_LPM1                  0X11
 
 /* Convert deg/s to rad/s */
 #define D2R M_PI / 180.0f
@@ -312,13 +298,19 @@ FAR struct spi_dev_s *spi;    /* SPI interface */
  * Public Function Prototypes
  ****************************************************************************/
 
-uint8_t bmi085_getreg8(FAR struct bmi085_dev_s *priv, uint8_t addr, uint8_t regaddr);
-void bmi085_putreg8(FAR struct bmi085_dev_s *priv, uint8_t addr, uint8_t regaddr,
+uint8_t bmi085_getreg8(FAR struct bmi085_dev_s *priv, uint8_t i2c_addr, uint8_t regaddr);
+void bmi085_putreg8(FAR struct bmi085_dev_s *priv, uint8_t i2c_addr, uint8_t regaddr,
                     uint8_t regval);
-uint16_t bmi085_getreg16(FAR struct bmi085_dev_s *priv, uint8_t addr, uint8_t regaddr);
-void bmi085_getregs(FAR struct bmi085_dev_s *priv, uint8_t addr, uint8_t regaddr,
+uint16_t bmi085_getreg16(FAR struct bmi085_dev_s *priv, uint8_t i2c_addr, uint8_t regaddr);
+void bmi085_getregs(FAR struct bmi085_dev_s *priv, uint8_t i2c_addr, uint8_t regaddr,
                     uint8_t *regval, int len);
 
 int bmi085_checkid(FAR struct bmi085_dev_s *priv);
+
+/****************************************************************************
+ * Deice Specific Function Prototypes
+ ****************************************************************************/
+
+void bmi085_set_normal_imu(FAR struct bmi085_dev_s *priv);
 
 #endif /* __INCLUDE_NUTTX_SENSORS_BMI085_COMMOM_H */

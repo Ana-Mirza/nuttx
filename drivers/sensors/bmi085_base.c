@@ -29,6 +29,8 @@
 /****************************************************************************
 * Pre-processor Definitions
 ****************************************************************************/
+#define GET_FIELD(regname,value) ((value & regname##_MASK) >> regname##_POS)
+#define	SET_FIELD(regval,regname,value) ((regval & ~regname##_MASK) | ((value << regname##_POS) & regname##_MASK))
 
 /****************************************************************************
 * Private Types
@@ -64,7 +66,6 @@ static void bmi085_configspi(FAR struct spi_dev_s *spi)
 /****************************************************************************
 * Public Functions
 ****************************************************************************/
-#define GET_FIELD(regname,value) ((value & regname##_MASK) >> regname##_POS)
 
 /****************************************************************************
 * Name: bmi085_getreg8
@@ -74,7 +75,7 @@ static void bmi085_configspi(FAR struct spi_dev_s *spi)
 *
 ****************************************************************************/
 
-uint8_t bmi085_getreg8(FAR struct bmi085_dev_s *priv, uint8_t addr, uint8_t regaddr)
+uint8_t bmi085_getreg8(FAR struct bmi085_dev_s *priv, uint8_t i2c_addr, uint8_t regaddr)
 {
   uint8_t regval = 0;
 
@@ -83,13 +84,13 @@ uint8_t bmi085_getreg8(FAR struct bmi085_dev_s *priv, uint8_t addr, uint8_t rega
   int ret;
 
   msg[0].frequency = priv->freq;
-  msg[0].addr      = addr;
-  msg[0].flags     = 0;
+  msg[0].addr      = i2c_addr;
+  msg[0].flags     = I2C_M_NOSTOP;
   msg[0].buffer    = &regaddr;
   msg[0].length    = 1;
 
   msg[1].frequency = priv->freq;
-  msg[1].addr      = addr;
+  msg[1].addr      = i2c_addr;
   msg[1].flags     = I2C_M_READ;
   msg[1].buffer    = &regval;
   msg[1].length    = 1;
@@ -112,7 +113,7 @@ uint8_t bmi085_getreg8(FAR struct bmi085_dev_s *priv, uint8_t addr, uint8_t rega
 *
 ****************************************************************************/
 
-void bmi085_putreg8(FAR struct bmi085_dev_s *priv, uint8_t addr, uint8_t regaddr,
+void bmi085_putreg8(FAR struct bmi085_dev_s *priv, uint8_t i2c_addr, uint8_t regaddr,
                     uint8_t regval)
 {
 #ifdef CONFIG_SENSORS_BMI085_I2C
@@ -124,7 +125,7 @@ void bmi085_putreg8(FAR struct bmi085_dev_s *priv, uint8_t addr, uint8_t regaddr
   txbuffer[1] = regval;
 
   msg[0].frequency = priv->freq;
-  msg[0].addr      = addr;
+  msg[0].addr      = i2c_addr;
   msg[0].flags     = 0;
   msg[0].buffer    = txbuffer;
   msg[0].length    = 2;
@@ -145,7 +146,7 @@ void bmi085_putreg8(FAR struct bmi085_dev_s *priv, uint8_t addr, uint8_t regaddr
 *
 ****************************************************************************/
 
-uint16_t bmi085_getreg16(FAR struct bmi085_dev_s *priv, uint8_t addr, uint8_t regaddr)
+uint16_t bmi085_getreg16(FAR struct bmi085_dev_s *priv, uint8_t i2c_addr, uint8_t regaddr)
 {
   uint16_t regval = 0;
 
@@ -154,13 +155,13 @@ uint16_t bmi085_getreg16(FAR struct bmi085_dev_s *priv, uint8_t addr, uint8_t re
   int ret;
 
   msg[0].frequency = priv->freq;
-  msg[0].addr      = addr;
+  msg[0].addr      = i2c_addr;
   msg[0].flags     = I2C_M_NOSTOP;
   msg[0].buffer    = &regaddr;
   msg[0].length    = 1;
 
   msg[1].frequency = priv->freq;
-  msg[1].addr      = addr;
+  msg[1].addr      = i2c_addr;
   msg[1].flags     = I2C_M_READ;
   msg[1].buffer    = (FAR uint8_t *)&regval;
   msg[1].length    = 2;
@@ -183,7 +184,7 @@ uint16_t bmi085_getreg16(FAR struct bmi085_dev_s *priv, uint8_t addr, uint8_t re
 *
 ****************************************************************************/
 
-void bmi085_getregs(FAR struct bmi085_dev_s *priv, uint8_t addr, uint8_t regaddr,
+void bmi085_getregs(FAR struct bmi085_dev_s *priv, uint8_t i2c_addr, uint8_t regaddr,
                     uint8_t *regval, int len)
 {
 #ifdef CONFIG_SENSORS_BMI085_I2C
@@ -191,13 +192,13 @@ void bmi085_getregs(FAR struct bmi085_dev_s *priv, uint8_t addr, uint8_t regaddr
   int ret;
 
   msg[0].frequency = priv->freq;
-  msg[0].addr      = addr;
+  msg[0].addr      = i2c_addr;
   msg[0].flags     = I2C_M_NOSTOP;
   msg[0].buffer    = &regaddr;
   msg[0].length    = 1;
 
   msg[1].frequency = priv->freq;
-  msg[1].addr      = addr;
+  msg[1].addr      = i2c_addr;
   msg[1].flags     = I2C_M_READ;
   msg[1].buffer    = regval;
   msg[1].length    = len;
@@ -246,6 +247,29 @@ int bmi085_checkid(FAR struct bmi085_dev_s *priv)
     }
 
   return OK;
+}
+
+/****************************************************************************
+ * Name: bmi085_set_normal_imu
+ *
+ * Description:
+ *   set bmi085 to normal IMU mode.
+ *
+ ****************************************************************************/
+
+void bmi085_set_normal_imu(FAR struct bmi085_dev_s *priv) 
+{
+  /* Set accel & gyro as normal mode. */
+  bmi085_putreg8(priv, priv->acc_addr, ACCEL_PWR_CNTRL_ADDR, ACCEL_ENABLE_CMD);
+  up_mdelay(30);
+  bmi085_putreg8(priv, priv->gyro_addr, GYRO_LPM1, GYRO_PWR_NORMAL);
+  up_mdelay(30);
+
+  /* Set accel & gyro output data rate. */
+  bmi085_putreg8(priv, priv->acc_addr, ACCEL_ODR_ADDR,
+      ACCEL_NORMAL_AVG4 | ACCEL_ODR_100_HZ);
+  bmi085_putreg8(priv, priv->gyro_addr, GYRO_ODR_ADDR,
+      GYRO_ODR_100HZ_BW_32HZ);
 }
 
 #endif /* CONFIG_SENSORS_BMI085 */
