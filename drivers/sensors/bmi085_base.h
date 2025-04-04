@@ -39,6 +39,7 @@
 #include <errno.h>
 #include <debug.h>
 #include <fixedmath.h>
+#include <math.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -69,8 +70,8 @@
 
 /* Register 0x40 - ACCEL_CONFIG accel bandwidth and ODR */
 
-#define ACCEL_OSR4      (8 << 4)
-#define ACCEL_OSR2      (9 << 4)
+#define ACCEL_OSR4           (8 << 4)
+#define ACCEL_OSR2           (9 << 4)
 #define ACCEL_NORMAL_AVG4    (10 << 4)
 
 #define ACCEL_ODR_12_5HZ    0x05
@@ -295,6 +296,10 @@ FAR struct spi_dev_s *spi;    /* SPI interface */
 };
 
 /****************************************************************************
+ * Public Variables
+ ****************************************************************************/
+
+/****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
 
@@ -312,5 +317,9 @@ int bmi085_checkid(FAR struct bmi085_dev_s *priv);
  ****************************************************************************/
 
 void bmi085_set_normal_imu(FAR struct bmi085_dev_s *priv);
+void bmi085_data_read(FAR struct bmi085_dev_s *priv, FAR struct accel_gyro_st_s *p);
+void bmi085_get_acc(FAR struct accel_t *accel_p, float acc_data[3]);
+void bmi085_get_gyro(FAR struct accel_t *accel_p, float gyro_data[3]);
+void bmi085_get_temp(uint16_t sensor_temp, float *temp_c);
 
 #endif /* __INCLUDE_NUTTX_SENSORS_BMI085_COMMOM_H */

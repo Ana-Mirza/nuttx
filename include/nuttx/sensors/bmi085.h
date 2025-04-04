@@ -91,6 +91,7 @@ struct accel_gyro_st_s
   struct gyro_t  gyro;
   struct accel_t accel;
   uint32_t sensor_time;
+  uint16_t sensor_temp;
 };
 
 struct spi_dev_s;

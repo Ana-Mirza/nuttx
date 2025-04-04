@@ -30,10 +30,6 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* Macros to get and set register fields */
-#define GET_FIELD(regname,value) ((value & regname##_MASK) >> regname##_POS)
-#define	SET_FIELD(regval,regname,value) ((regval & ~regname##_MASK) | ((value << regname##_POS) & regname##_MASK))
-
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -83,6 +79,7 @@ static int bmi085_open(FAR struct file *filep)
   /* Set accel and gyro mode. */
   bmi085_set_normal_imu(priv);
 
+  sninfo("BMI085 sensor activated.\n");
   return OK;
 }
 
@@ -106,6 +103,7 @@ static int bmi085_close(FAR struct file *filep)
   bmi085_putreg8(priv, priv->gyro_addr, GYRO_LPM1, GYRO_PWR_SUSPEND);
   up_mdelay(30);
 
+  sninfo("BMI085 sensor suspended.\n");
   return OK;
 }
 
@@ -123,6 +121,14 @@ static ssize_t bmi085_read(FAR struct file *filep, FAR char *buffer,
   FAR struct inode        *inode = filep->f_inode;
   FAR struct bmi085_dev_s *priv  = inode->i_private;
   FAR struct accel_gyro_st_s *p = (FAR struct accel_gyro_st_s *)buffer;
+
+  if (len < sizeof(struct accel_gyro_st_s))
+    {
+      snerr("Expected buffer size is %zu\n", sizeof(struct accel_gyro_st_s));
+      return 0;
+    }
+
+  bmi085_data_read(priv, p);
 
   return len;
 }
