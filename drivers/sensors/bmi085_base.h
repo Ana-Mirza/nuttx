@@ -83,6 +83,12 @@
 #define ACCEL_ODR_800_HZ    0x0B
 #define ACCEL_ODR_1600_HZ   0x0C
 
+/* Accelerometer Range */
+#define ACCEL_RANGE_2G   0x00
+#define ACCEL_RANGE_4G   0x01
+#define ACCEL_RANGE_8G   0x02
+#define ACCEL_RANGE_16G  0x03
+
 /* Constants */
 #define ACCEL_CHIP_ID           0x1F
 #define ACCEL_RESET_CMD         0xB6
@@ -318,8 +324,8 @@ int bmi085_checkid(FAR struct bmi085_dev_s *priv);
 
 void bmi085_set_normal_imu(FAR struct bmi085_dev_s *priv);
 void bmi085_data_read(FAR struct bmi085_dev_s *priv, FAR struct accel_gyro_st_s *p);
-void bmi085_get_acc(FAR struct accel_t *accel_p, float acc_data[3]);
-void bmi085_get_gyro(FAR struct accel_t *accel_p, float gyro_data[3]);
+void bmi085_get_acc(struct accel_t *accel_p, float *acc_data);
+void bmi085_get_gyro(struct gyro_t *accel_p, float *gyro_data);
 void bmi085_get_temp(uint16_t sensor_temp, float *temp_c);
 
 #endif /* __INCLUDE_NUTTX_SENSORS_BMI085_COMMOM_H */

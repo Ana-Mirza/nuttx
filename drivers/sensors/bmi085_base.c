@@ -280,86 +280,66 @@ void bmi085_set_normal_imu(FAR struct bmi085_dev_s *priv)
 
 void bmi085_data_read(FAR struct bmi085_dev_s *priv, FAR struct accel_gyro_st_s *p)
 {
-  struct accel_t *accel_p = &(p->accel);
-  struct gyro_t *gyro_p = &(p->gyro);
+  FAR struct accel_t *accel_p = &(p->accel);
+  FAR struct gyro_t *gyro_p = &(p->gyro);
   uint32_t *sensor_time = &(p->sensor_time);
   uint16_t *sensor_temp = &(p->sensor_temp); 
   u_int8_t acc_data[9];
   u_int8_t gyro_data[6];
 
+  sninfo("Starting data reading...\n");
+
   /* Read accelerometer and time data */
+  int16_t data[3];
+  int16_t data_g[3];
   bmi085_getregs(priv, priv->acc_addr, ACCEL_ACCEL_DATA_ADDR, acc_data, 9);
 
-  accel_p->x = (acc_data[1] << 8) | acc_data[0];
-  accel_p->y = (acc_data[3] << 8) | acc_data[2];
-  accel_p->z = (acc_data[5] << 8) | acc_data[4];
+  data[0] = (int16_t)(acc_data[1] << 8) | acc_data[0];
+  data[1] = (int16_t)(acc_data[3] << 8) | acc_data[2];
+  data[2] = (int16_t)(acc_data[5] << 8) | acc_data[4];
+
+  uint8_t range = bmi085_getreg8(priv, priv->acc_addr, ACCEL_RANGE_ADDR);
+  uint16_t accel_range_mg = 1 << (range + 1);
+  sninfo("Data 16-bit ACC_RANGE_MG--->: %d\n", accel_range_mg);
+
+  float scale = (float)accel_range_mg * 1000 / 32768.0f;
+  accel_p->x = data[0] * scale;
+  accel_p->y = data[1] * scale;
+  accel_p->z = data[2] * scale;
+
+  sninfo("Data 16-bit ACC_X--->: %d mg\n", data[0]);
+  sninfo("Data 16-bit ACC_Y--->: %d mg\n", data[1]);
+  sninfo("Data 16-bit ACC_Z--->: %d mg\n", data[2]);
 
   /* Time data */
   *sensor_time = (acc_data[8] << 16) | (acc_data[7] << 8) | acc_data[6];
 
   /* Read temperature data */
+  int16_t temp_int11;
   bmi085_getregs(priv, priv->acc_addr, ACCEL_TEMP_DATA_ADDR, acc_data, 2);
-  *sensor_temp = (acc_data[0] * 8) + (acc_data[1] / 32);
+  uint16_t temp_uint11 = (acc_data[0] * 8) + (acc_data[1] / 32);
+  if (temp_uint11 > 1023) {
+    temp_int11 = temp_uint11 - 2048;
+  } else {
+    temp_int11 = temp_uint11;
+  }
+  *sensor_temp = (float) temp_int11 * 0.125f + 23.0f;
 
   /* Read gyro data */
   bmi085_getregs(priv, priv->gyro_addr, GYRO_DATA_ADDR, gyro_data, 6);
 
-  gyro_p->x = (gyro_data[1] << 8) | gyro_data[0];
-  gyro_p->y = (gyro_data[3] << 8) | gyro_data[2];
-  gyro_p->z = (gyro_data[5] << 8) | gyro_data[4];
-}
+  data_g[0] = (int16_t)(gyro_data[1] << 8) | gyro_data[0];
+  data_g[1] = (int16_t)(gyro_data[3] << 8) | gyro_data[2];
+  data_g[2] = (int16_t)(gyro_data[5] << 8) | gyro_data[4];
 
-/****************************************************************************
- * Name: bmi085_get_acc
- *
- * Description:
- *   get bmi085 acc data in m/s/s.
- *
- ****************************************************************************/
+  float gyro_scale = 2000.0f / 32768.0f * D2R;
+  gyro_p->x = data_g[0] * gyro_scale;
+  gyro_p->y = data_g[1] * gyro_scale;
+  gyro_p->z = data_g[2] * gyro_scale;
 
-void bmi085_get_acc(FAR struct accel_t *accel_p, float acc_data[3]) 
-{
-  float accel_range_mss = 4.0f * G;
-
-  acc_data[0] = (float) accel_p->x / 32768.0f * accel_range_mss;
-  acc_data[1] = (float) accel_p->y / 32768.0f * accel_range_mss;
-  acc_data[2] = (float) accel_p->z / 32768.0f * accel_range_mss;
-}
-
-/****************************************************************************
- * Name: bmi085_get_gyro
- *
- * Description:
- *   get bmi085 gyro data.
- *
- ****************************************************************************/
-
-void bmi085_get_gyro(FAR struct accel_t *gyro_p, float gyro_data[3]) 
-{
-  float gyro_range_rads = 2000.0f * D2R;
-
-  gyro_data[0] = (float) gyro_p->x / 32767.0f * gyro_range_rads;
-  gyro_data[1] = (float) gyro_p->y / 32767.0f * gyro_range_rads;
-  gyro_data[2] = (float) gyro_p->y / 32767.0f * gyro_range_rads;
-}
-
-/****************************************************************************
- * Name: bmi085_get_temp
- *
- * Description:
- *   get bmi085 temperature data in celsius.
- *
- ****************************************************************************/
-
-void bmi085_get_temp(uint16_t sensor_temp, float *temp_c)
-{
-  if (sensor_temp > 1023) {
-    sensor_temp = sensor_temp - 2048;
-  } else {
-    sensor_temp = sensor_temp;
-  }
-
-  *temp_c = (float) sensor_temp * 0.125f + 23.0f;
+  sninfo("Data 16-bit GYRO_X--->: %d\n", gyro_p->x);
+  sninfo("Data 16-bit GYRO_Y--->: %d\n", gyro_p->y);
+  sninfo("Data 16-bit GYRO_Z--->: %d\n", gyro_p->z);
 }
 
 #endif /* CONFIG_SENSORS_BMI085 */

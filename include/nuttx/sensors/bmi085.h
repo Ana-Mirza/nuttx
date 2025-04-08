@@ -59,11 +59,6 @@
 
 /* IOCTL Commands ***********************************************************/
 
-#define SNIOC_ENABLESC     _SNIOC(0x0001) /* Arg: uint8_t value */
-#define SNIOC_READSC       _SNIOC(0x0002) /* Arg: int16_t* pointer */
-#define SNIOC_SETACCPM     _SNIOC(0x0003) /* Arg: uint8_t value */
-#define SNIOC_SETACCODR    _SNIOC(0x0004) /* Arg: uint8_t value */
-
 /****************************************************************************
 * Public Types
 ****************************************************************************/
