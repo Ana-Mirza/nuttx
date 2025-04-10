@@ -143,11 +143,7 @@ static ssize_t bmi085_read(FAR struct file *filep, FAR char *buffer,
 
 static int bmi085_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 {
-  FAR struct inode        *inode = filep->f_inode;
-  FAR struct bmi085_dev_s *priv  = inode->i_private;
-  int ret = OK;
-
-  return ret;
+  return OK;
 }
 
 /****************************************************************************

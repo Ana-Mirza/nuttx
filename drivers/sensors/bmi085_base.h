@@ -324,8 +324,8 @@ int bmi085_checkid(FAR struct bmi085_dev_s *priv);
 
 void bmi085_set_normal_imu(FAR struct bmi085_dev_s *priv);
 void bmi085_data_read(FAR struct bmi085_dev_s *priv, FAR struct accel_gyro_st_s *p);
-void bmi085_get_acc(struct accel_t *accel_p, float *acc_data);
-void bmi085_get_gyro(struct gyro_t *accel_p, float *gyro_data);
-void bmi085_get_temp(uint16_t sensor_temp, float *temp_c);
+void bmi085_acc_read(FAR struct bmi085_dev_s *priv, FAR struct accel_gyro_st_s *p);
+void bmi085_gyro_read(FAR struct bmi085_dev_s *priv, FAR struct accel_gyro_st_s *p);
+void bmi085_temp_read(FAR struct bmi085_dev_s *priv, FAR struct accel_gyro_st_s *p);
 
 #endif /* __INCLUDE_NUTTX_SENSORS_BMI085_COMMOM_H */
