@@ -76,7 +76,7 @@
 
 #define ACCEL_ODR_12_5HZ    0x05
 #define ACCEL_ODR_25_HZ     0x06
-#define ACCEL_ODR_50_1HZ    0x07
+#define ACCEL_ODR_50_HZ    0x07
 #define ACCEL_ODR_100_HZ    0x08
 #define ACCEL_ODR_200_HZ    0x09
 #define ACCEL_ODR_400_HZ    0x0A

@@ -265,7 +265,7 @@ void bmi085_set_normal_imu(FAR struct bmi085_dev_s *priv)
 
   /* Set accel & gyro output data rate. */
   bmi085_putreg8(priv, priv->acc_addr, ACCEL_ODR_ADDR,
-      ACCEL_NORMAL_AVG4 | ACCEL_ODR_100_HZ);
+      ACCEL_NORMAL_AVG4 | ACCEL_ODR_50_HZ);
   bmi085_putreg8(priv, priv->gyro_addr, GYRO_ODR_ADDR,
       GYRO_ODR_100HZ_BW_32HZ);
 }
