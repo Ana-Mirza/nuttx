@@ -81,10 +81,6 @@ static int bmi085_open(FAR struct file *filep)
   /* Set accel and gyro mode. */
   bmi085_set_normal_imu(priv);
 
-  /* Activate interrupts */
-  // sninfo("BMI085 activating irq.\n");
-  // bmi085_enable_irq(priv, true);
-
   sninfo("BMI085 sensor activated.\n");
   return OK;
 }

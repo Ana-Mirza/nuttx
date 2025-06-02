@@ -1,5 +1,5 @@
 /****************************************************************************
- * dr`vers/sensors/bmi085_base.c
+ * drvers/sensors/bmi085_base.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
