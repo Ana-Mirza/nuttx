@@ -29,6 +29,7 @@
 
 #include <nuttx/config.h>
 #include <nuttx/fs/ioctl.h>
+#include <nuttx/irq.h>
 
 #if defined(CONFIG_SENSORS_BMI085) || defined(CONFIG_SENSORS_BMI085_SCU)
 
@@ -58,7 +59,11 @@
 #define BMI085_ACCEL_ODR_1600HZ (0x08)
 
 /* IOCTL Commands ***********************************************************/
-
+#define SNIOC_ENABLEIRQ   _SNIOC(0x0001) /* Arg: uint8_t value */
+#define SNIOC_STATUSIRQ   _SNIOC(0x0002)
+#define SNIOC_DATAIRQ     _SNIOC(0x0003)
+#define SNIOC_DATASTATUS  _SNIOC(0x0004)
+#define SNIOC_INT1STATUS  _SNIOC(0x0005)
 /****************************************************************************
 * Public Types
 ****************************************************************************/
@@ -92,6 +97,43 @@ struct accel_gyro_st_s
 struct spi_dev_s;
 struct i2c_master_s;
 
+/* Form of the GPIO "interrupt handler" callback.
+ * Callbacks do not occur from an interrupt handler but rather from the
+ * context of the worker thread with interrupts enabled.
+ */
+
+typedef CODE void (*bmi085_handler_t)(int irq, void *context,
+  FAR void *arg);
+  
+
+struct bmi085_config_s
+{
+/* Device characterization */
+
+#ifdef CONFIG_SENSORS_BMI085_I2C
+uint8_t acc_addr;                 /* I2C acc address */
+uint8_t gyro_addr;                /* I2C gyro address */
+#endif
+int freq;  /* I2C or SPI frequency */
+
+/* IRQ/GPIO access callbacks.  These operations all hidden behind
+* callbacks to isolate the BMI085 driver from differences in GPIO
+* interrupt handling by varying boards and MCUs.
+*
+* attach  - Attach the BMI085 interrupt handler to the GPIO interrupt
+* enable  - Enable or disable the GPIO interrupt
+* clear   - Acknowledge/clear any pending GPIO interrupt
+*/
+
+int  (*attach)(FAR struct bmi085_config_s *state,
+                bmi085_handler_t handler,
+                FAR void *arg);
+void (*enable)(FAR struct bmi085_config_s *state, bool enable);
+void (*clear)(FAR struct bmi085_config_s *state);
+};
+
+typedef FAR void *BMI085_HANDLE;
+
 /****************************************************************************
 * Public Function Prototypes
 ****************************************************************************/
@@ -124,13 +166,16 @@ extern "C"
 #  ifdef CONFIG_SENSORS_BMI085_UORB
 int bmi085_register_uorb(int devno, FAR struct i2c_master_s *dev);
 #  else
-int bmi085_register(FAR const char *devpath, FAR struct i2c_master_s *dev);
+int bmi085_register(FAR const char *devpath, FAR struct i2c_master_s *dev, 
+  FAR struct bmi085_config_s *config);
 #  endif /* CONFIG_SENSORS_BMI085_UORB */
 #else /* CONFIG_BMI085_SPI */
 #  ifdef CONFIG_SENSORS_BMI085_UORB
-int bmi085_register_uorb(int devno, FAR struct spi_dev_s *dev);
+int bmi085_register_uorb(int devno, FAR struct spi_dev_s *dev, 
+  FAR struct bmi085_config_s *config);
 #  else
-int bmi085_register(FAR const char *devpath, FAR struct spi_dev_s *dev);
+int bmi085_register(FAR const char *devpath, FAR struct spi_dev_s *dev, 
+  FAR struct bmi085_config_s *config);
 #  endif /* CONFIG_SENSORS_BMI085_UORB */
 #endif
 

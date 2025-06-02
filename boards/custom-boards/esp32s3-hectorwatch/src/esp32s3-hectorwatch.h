@@ -47,6 +47,11 @@
 #define BUTTON_UP 11
 #define BUTTON_DOWN 26
 
+/* IMU pins definitions */
+
+#define IMU_INT1 7
+#define IMU_INT2 6
+
 
 /****************************************************************************
  * Public Types

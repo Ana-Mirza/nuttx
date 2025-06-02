@@ -32,7 +32,6 @@
 #include <nuttx/kmalloc.h>
 #include <nuttx/spi/spi.h>
 #include <nuttx/i2c/i2c_master.h>
-#include <nuttx/sensors/bmi085.h>
 
 #include <stdlib.h>
 #include <assert.h>
@@ -40,6 +39,13 @@
 #include <debug.h>
 #include <fixedmath.h>
 #include <math.h>
+
+#include <semaphore.h>
+#include <nuttx/wdog.h>
+#include <nuttx/clock.h>
+#include <nuttx/wqueue.h>
+
+#include <nuttx/sensors/bmi085.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -76,7 +82,7 @@
 
 #define ACCEL_ODR_12_5HZ    0x05
 #define ACCEL_ODR_25_HZ     0x06
-#define ACCEL_ODR_50_HZ    0x07
+#define ACCEL_ODR_50_HZ     0x07
 #define ACCEL_ODR_100_HZ    0x08
 #define ACCEL_ODR_200_HZ    0x09
 #define ACCEL_ODR_400_HZ    0x0A
@@ -105,6 +111,9 @@
 #define ACCEL_POS_SELF_TEST     0x0D
 #define ACCEL_NEG_SELF_TEST     0x09
 #define ACCEL_DIS_SELF_TEST     0x00
+#define ACCEL_INT_STAT_1        0x1D
+
+#define INT_DATA_READY          (1 << 7) /* Bit 7: Data Ready detection */
 
 /*  Accellerometer registers */
 #define ACCEL_CHIP_ID_ADDR          0x00
@@ -206,6 +215,10 @@
 #define GYRO_INT_LVL_HIGH       0x01
 #define GYRO_INT_LVL_LOW        0x00
 
+#define GYRO_INT3_DRDY          0x01
+#define GYRO_INT4_DRDY          0x80
+#define GYRO_INT3_4_DRDY        0x81
+
 /* Registers */
 #define GYRO_CHIP_ID_ADDR          0x00
 #define GYRO_CHIP_ID_MASK          0xFF
@@ -287,19 +300,54 @@
  * Public Types
  ****************************************************************************/
 
+#define BMI085_STAT_INITIALIZED  1 /* Device has been initialized */
+
+ /* This defines type of events */
+
+enum bmi085_event
+{
+  DATA_READY = 0,                      /* New data available */
+  SINGLE_TAP,                          /* A tap event detected */
+  DOUBLE_TAP,                          /* A double tap event detected */
+  ACTIVITY,                            /* Activity detected */
+  INACTIVITY,                          /* Inactivity detected */
+  FREE_FAL,                            /* Free fall event */
+  WATERMARK,                           /* Number samples in FIFO is equal to sample bits */
+  OVERRUN,                             /* New data replaced unread data */
+};
+
+/* This defines operating mode */
+
+enum bmi085_mode
+{
+  BYPASS_MODE = 0,                     /* Bypass FIFO, then it remain empty */
+  FIFO_MODE,                           /* Sampled data are put in FIFO, up to 32 samples */
+  STREAM_MODE,                         /* Sampled data are put in FIFO, when full remove old samples */
+  TRIGGER_MODE                         /* Similar to Stream Mode, but when Trigger event happen FIFO freeze */
+};
+
 struct bmi085_dev_s
 {
-#ifdef CONFIG_SENSORS_BMI085_I2C
-FAR struct i2c_master_s *i2c; /* I2C interface */
-uint8_t acc_addr;                 /* I2C address */
-uint8_t gyro_addr;                 /* I2C address */
-int freq;                     /* Frequency <= 3.4MHz */
+  FAR struct bmi085_config_s *config; /* Board configuration data */
+  mutex_t lock;
+  #ifdef CONFIG_SENSORS_BMI085_I2C
+    FAR struct i2c_master_s *i2c; /* I2C interface */
+  #else /* CONFIG_SENSORS_BMI085_SPI */
+    FAR struct spi_dev_s *spi;    /* SPI interface */
+  #endif             
 
-#else /* CONFIG_SENSORS_BMI085_SPI */
-FAR struct spi_dev_s *spi;    /* SPI interface */
+  uint8_t status;                      /* See BMI085_STAT_* definitions */
+  struct work_s work;                  /* Supports the interrupt handling "bottom half" */
 
-#endif
+  uint8_t nwaiters;                    /* Number of threads waiting for BMI085 data */
+  sem_t waitsem;                       /* Used to wait for the availability of data */
+
+  struct work_s timeout;               /* Supports timeout work */
+  struct accel_gyro_st_s sample;       /* Last sampled data */
 };
+
+#define GET_FIELD(regname,value) ((value & regname##_MASK) >> regname##_POS)
+#define	SET_FIELD(regval,regname,value) ((regval & ~regname##_MASK) | ((value << regname##_POS) & regname##_MASK))
 
 /****************************************************************************
  * Public Variables
@@ -327,5 +375,12 @@ void bmi085_data_read(FAR struct bmi085_dev_s *priv, FAR struct accel_gyro_st_s 
 void bmi085_acc_read(FAR struct bmi085_dev_s *priv, FAR struct accel_gyro_st_s *p);
 void bmi085_gyro_read(FAR struct bmi085_dev_s *priv, FAR struct accel_gyro_st_s *p);
 void bmi085_temp_read(FAR struct bmi085_dev_s *priv, FAR struct accel_gyro_st_s *p);
+
+void bmi085_enable_irq(FAR struct bmi085_dev_s *priv, bool enable);
+int bmi085_status_irq(FAR struct bmi085_dev_s *priv);
+void bmi085_set_data(FAR struct bmi085_dev_s *priv, FAR struct accel_gyro_st_s *p);
+
+void bmi085_pin_mode_int1(FAR struct bmi085_dev_s *priv);
+void bmi085_accel_map_int1(FAR struct bmi085_dev_s *priv);
 
 #endif /* __INCLUDE_NUTTX_SENSORS_BMI085_COMMOM_H */

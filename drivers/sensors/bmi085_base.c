@@ -1,5 +1,5 @@
 /****************************************************************************
- * drivers/sensors/bmi085_base.c
+ * dr`vers/sensors/bmi085_base.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -21,6 +21,18 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
+#include <nuttx/config.h>
+
+#include <unistd.h>
+#include <assert.h>
+#include <errno.h>
+#include <debug.h>
+#include <stdio.h>
+
+#include <string.h>
+#include <nuttx/kmalloc.h>
+#include <nuttx/signal.h>
+#include <nuttx/random.h>
 
 #include "bmi085_base.h"
 
@@ -81,13 +93,13 @@ uint8_t bmi085_getreg8(FAR struct bmi085_dev_s *priv, uint8_t i2c_addr, uint8_t 
   struct i2c_msg_s msg[2];
   int ret;
 
-  msg[0].frequency = priv->freq;
+  msg[0].frequency = priv->config->freq;
   msg[0].addr      = i2c_addr;
   msg[0].flags     = I2C_M_NOSTOP;
   msg[0].buffer    = &regaddr;
   msg[0].length    = 1;
 
-  msg[1].frequency = priv->freq;
+  msg[1].frequency = priv->config->freq;
   msg[1].addr      = i2c_addr;
   msg[1].flags     = I2C_M_READ;
   msg[1].buffer    = &regval;
@@ -122,7 +134,7 @@ void bmi085_putreg8(FAR struct bmi085_dev_s *priv, uint8_t i2c_addr, uint8_t reg
   txbuffer[0] = regaddr;
   txbuffer[1] = regval;
 
-  msg[0].frequency = priv->freq;
+  msg[0].frequency = priv->config->freq;
   msg[0].addr      = i2c_addr;
   msg[0].flags     = 0;
   msg[0].buffer    = txbuffer;
@@ -135,7 +147,6 @@ void bmi085_putreg8(FAR struct bmi085_dev_s *priv, uint8_t i2c_addr, uint8_t reg
     }
 #endif
 }
-
 /****************************************************************************
 * Name: bmi085_getreg16
 *
@@ -152,13 +163,13 @@ uint16_t bmi085_getreg16(FAR struct bmi085_dev_s *priv, uint8_t i2c_addr, uint8_
   struct i2c_msg_s msg[2];
   int ret;
 
-  msg[0].frequency = priv->freq;
+  msg[0].frequency = priv->config->freq;
   msg[0].addr      = i2c_addr;
   msg[0].flags     = I2C_M_NOSTOP;
   msg[0].buffer    = &regaddr;
   msg[0].length    = 1;
 
-  msg[1].frequency = priv->freq;
+  msg[1].frequency = priv->config->freq;
   msg[1].addr      = i2c_addr;
   msg[1].flags     = I2C_M_READ;
   msg[1].buffer    = (FAR uint8_t *)&regval;
@@ -189,13 +200,13 @@ void bmi085_getregs(FAR struct bmi085_dev_s *priv, uint8_t i2c_addr, uint8_t reg
   struct i2c_msg_s msg[2];
   int ret;
 
-  msg[0].frequency = priv->freq;
+  msg[0].frequency = priv->config->freq;
   msg[0].addr      = i2c_addr;
   msg[0].flags     = I2C_M_NOSTOP;
   msg[0].buffer    = &regaddr;
   msg[0].length    = 1;
 
-  msg[1].frequency = priv->freq;
+  msg[1].frequency = priv->config->freq;
   msg[1].addr      = i2c_addr;
   msg[1].flags     = I2C_M_READ;
   msg[1].buffer    = regval;
@@ -224,7 +235,7 @@ int bmi085_checkid(FAR struct bmi085_dev_s *priv)
 
   /* Read Accelerometer device ID */
 
-  devid = bmi085_getreg8(priv, priv->acc_addr, ACCEL_CHIP_ID_ADDR);
+  devid = bmi085_getreg8(priv, priv->config->acc_addr, ACCEL_CHIP_ID_ADDR);
   sninfo("acc devid: %04x\n", devid);
 
   if (devid != (uint16_t) ACC_DEVID)
@@ -235,7 +246,7 @@ int bmi085_checkid(FAR struct bmi085_dev_s *priv)
 
   /* Read Gyro device ID */
 
-  devid = bmi085_getreg8(priv, priv->gyro_addr, GYRO_CHIP_ID_ADDR);
+  devid = bmi085_getreg8(priv, priv->config->gyro_addr, GYRO_CHIP_ID_ADDR);
   sninfo("gyro devid: %04x\n", devid);
 
   if (devid != (uint16_t) GYRO_DEVID)
@@ -258,15 +269,15 @@ int bmi085_checkid(FAR struct bmi085_dev_s *priv)
 void bmi085_set_normal_imu(FAR struct bmi085_dev_s *priv) 
 {
   /* Set accel & gyro as normal mode. */
-  bmi085_putreg8(priv, priv->acc_addr, ACCEL_PWR_CNTRL_ADDR, ACCEL_ENABLE_CMD);
+  bmi085_putreg8(priv, priv->config->acc_addr, ACCEL_PWR_CNTRL_ADDR, ACCEL_ENABLE_CMD);
   up_mdelay(30);
-  bmi085_putreg8(priv, priv->gyro_addr, GYRO_LPM1, GYRO_PWR_NORMAL);
+  bmi085_putreg8(priv, priv->config->gyro_addr, GYRO_LPM1, GYRO_PWR_NORMAL);
   up_mdelay(30);
 
   /* Set accel & gyro output data rate. */
-  bmi085_putreg8(priv, priv->acc_addr, ACCEL_ODR_ADDR,
+  bmi085_putreg8(priv, priv->config->acc_addr, ACCEL_ODR_ADDR,
       ACCEL_NORMAL_AVG4 | ACCEL_ODR_50_HZ);
-  bmi085_putreg8(priv, priv->gyro_addr, GYRO_ODR_ADDR,
+  bmi085_putreg8(priv, priv->config->gyro_addr, GYRO_ODR_ADDR,
       GYRO_ODR_100HZ_BW_32HZ);
 }
 
@@ -280,6 +291,15 @@ void bmi085_set_normal_imu(FAR struct bmi085_dev_s *priv)
 
 void bmi085_data_read(FAR struct bmi085_dev_s *priv, FAR struct accel_gyro_st_s *p)
 {
+  /* Get exclusive access to the driver data structure */
+
+  int ret = nxmutex_lock(&priv->lock);
+  if (ret < 0)
+    {
+      sninfo("Mutex lock failed for data read.\n");
+      return;
+    }
+
   /* Read accelerometer and time data. */
   bmi085_acc_read(priv, p);
 
@@ -288,6 +308,9 @@ void bmi085_data_read(FAR struct bmi085_dev_s *priv, FAR struct accel_gyro_st_s 
 
   /* Read gyro data. */
   bmi085_gyro_read(priv, p);
+
+  /* Unlock driver data structure */
+  nxmutex_unlock(&priv->lock);
 }
 
 /****************************************************************************
@@ -305,13 +328,13 @@ void bmi085_acc_read(FAR struct bmi085_dev_s *priv, FAR struct accel_gyro_st_s *
   FAR struct accel_t *accel_p = &(p->accel);
   uint32_t *sensor_time = &(p->sensor_time);
 
-  bmi085_getregs(priv, priv->acc_addr, ACCEL_ACCEL_DATA_ADDR, acc_data, 9);
+  bmi085_getregs(priv, priv->config->acc_addr, ACCEL_ACCEL_DATA_ADDR, acc_data, 9);
 
   data[0] = (int16_t)(acc_data[1] << 8) | acc_data[0];
   data[1] = (int16_t)(acc_data[3] << 8) | acc_data[2];
   data[2] = (int16_t)(acc_data[5] << 8) | acc_data[4];
 
-  uint8_t range = bmi085_getreg8(priv, priv->acc_addr, ACCEL_RANGE_ADDR);
+  uint8_t range = bmi085_getreg8(priv, priv->config->acc_addr, ACCEL_RANGE_ADDR);
   uint16_t accel_range_mg = 1 << (range + 1);
   sninfo("Data 16-bit ACC_RANGE_MG--->: %d\n", accel_range_mg);
 
@@ -342,7 +365,7 @@ void bmi085_gyro_read(FAR struct bmi085_dev_s *priv, FAR struct accel_gyro_st_s 
   u_int8_t gyro_data[6];
   FAR struct gyro_t *gyro_p = &(p->gyro);
 
-  bmi085_getregs(priv, priv->gyro_addr, GYRO_DATA_ADDR, gyro_data, 6);
+  bmi085_getregs(priv, priv->config->gyro_addr, GYRO_DATA_ADDR, gyro_data, 6);
 
   data_g[0] = (int16_t)(gyro_data[1] << 8) | gyro_data[0];
   data_g[1] = (int16_t)(gyro_data[3] << 8) | gyro_data[2];
@@ -372,7 +395,7 @@ void bmi085_temp_read(FAR struct bmi085_dev_s *priv, FAR struct accel_gyro_st_s 
   u_int8_t acc_data[9];
   uint16_t *sensor_temp = &(p->sensor_temp); 
 
-  bmi085_getregs(priv, priv->acc_addr, ACCEL_TEMP_DATA_ADDR, acc_data, 2);
+  bmi085_getregs(priv, priv->config->acc_addr, ACCEL_TEMP_DATA_ADDR, acc_data, 2);
   uint16_t temp_uint11 = (acc_data[0] * 8) + (acc_data[1] / 32);
 
   if (temp_uint11 > 1023) {
@@ -382,6 +405,99 @@ void bmi085_temp_read(FAR struct bmi085_dev_s *priv, FAR struct accel_gyro_st_s 
   }
 
   *sensor_temp = (float) temp_int11 * 0.125f + 23.0f;
+}
+
+/****************************************************************************
+ * Name: bmi085_enable_irq
+ *
+ * Description:
+ *   enable bmi085 gyro interrupts.
+ *
+ ****************************************************************************/
+
+void bmi085_enable_irq(FAR struct bmi085_dev_s *priv, bool enable) 
+{
+  /* Set pin modes INT1*/
+  if (enable) {
+
+    /* Configure acc output pin INT1*/
+    bmi085_pin_mode_int1(priv);
+
+    /* Map pins for INT1 */
+    bmi085_accel_map_int1(priv);
+
+    priv->status = ACTIVITY;
+
+    sninfo("bmi085_enable_irq: eabled interrupts.\n");
+  }
+}
+
+/****************************************************************************
+ * Name: bmi085_status_irq
+ *
+ * Description:
+ *   Returns interrupt status flag.
+ *
+ ****************************************************************************/
+int bmi085_status_irq(FAR struct bmi085_dev_s *priv) 
+{
+  return (int)priv->status;
+}
+
+/****************************************************************************
+ * Name: bmi085_set_data
+ *
+ * Description:
+ *   Sets user buffer pointing to the low level data buffer.
+ *
+ ****************************************************************************/
+void bmi085_set_data(FAR struct bmi085_dev_s *priv, FAR struct accel_gyro_st_s *p)
+{
+  p = &priv->sample;
+}
+
+/****************************************************************************
+ * Name: bmi085_pin_mode_int1
+ *
+ * Description:
+ *   Configures int1 line for interrupts.
+ *
+ ****************************************************************************/
+void bmi085_pin_mode_int1(FAR struct bmi085_dev_s *priv) 
+{
+  uint8_t write_reg = 0;
+  uint8_t read_reg = 0;
+
+  /* Set interrupt configs */
+  read_reg = bmi085_getreg8(priv, priv->config->acc_addr, ACCEL_INT1_IO_CTRL_ADDR);
+  write_reg = SET_FIELD(read_reg,ACCEL_INT1_IO_CTRL,
+    (ACCEL_INT_OUTPUT | ACCEL_INT_PUSHPULL | ACCEL_INT_LVL_HIGH));
+
+  /* Write back the configs */
+  bmi085_putreg8(priv, priv->config->acc_addr, ACCEL_INT1_IO_CTRL_ADDR, write_reg);
+
+  sninfo("pin mode int1 activated.\n");
+}
+
+/****************************************************************************
+ * Name: bmi085_set_data
+ *
+ * Description:
+ *   Maps int1 line for interrupts.
+ *
+ ****************************************************************************/
+void bmi085_accel_map_int1(FAR struct bmi085_dev_s *priv)
+{
+  uint8_t write_reg = 0;
+  write_reg = bmi085_getreg8(priv, priv->config->acc_addr, ACCEL_INT1_DRDY_ADDR);
+
+  /* Set pin 2 to value 0x00 */
+  write_reg = SET_FIELD(write_reg,ACCEL_INT1_DRDY,1);
+
+  bmi085_putreg8(priv, priv->config->acc_addr, ACCEL_INT1_DRDY_ADDR, write_reg);
+  up_mdelay(10);
+
+  sninfo("int1 mapped.\n");
 }
 
 #endif /* CONFIG_SENSORS_BMI085 */
