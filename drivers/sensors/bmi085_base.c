@@ -451,9 +451,10 @@ int bmi085_status_irq(FAR struct bmi085_dev_s *priv)
  *   Sets user buffer pointing to the low level data buffer.
  *
  ****************************************************************************/
-void bmi085_set_data(FAR struct bmi085_dev_s *priv, FAR struct accel_gyro_st_s *p)
+void bmi085_set_data(FAR struct bmi085_dev_s *priv, FAR struct accel_gyro_st_s **p)
 {
-  p = &priv->sample;
+  sninfo("priv->sample addr = %p\n", &priv->sample);
+  *p = &priv->sample;
 }
 
 /****************************************************************************

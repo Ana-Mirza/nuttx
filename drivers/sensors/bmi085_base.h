@@ -378,7 +378,7 @@ void bmi085_temp_read(FAR struct bmi085_dev_s *priv, FAR struct accel_gyro_st_s 
 
 void bmi085_enable_irq(FAR struct bmi085_dev_s *priv, bool enable);
 int bmi085_status_irq(FAR struct bmi085_dev_s *priv);
-void bmi085_set_data(FAR struct bmi085_dev_s *priv, FAR struct accel_gyro_st_s *p);
+void bmi085_set_data(FAR struct bmi085_dev_s *priv, FAR struct accel_gyro_st_s **p);
 
 void bmi085_pin_mode_int1(FAR struct bmi085_dev_s *priv);
 void bmi085_accel_map_int1(FAR struct bmi085_dev_s *priv);

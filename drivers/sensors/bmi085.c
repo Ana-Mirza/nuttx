@@ -172,7 +172,7 @@ static int bmi085_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
       case SNIOC_DATAIRQ:
         {
-          bmi085_set_data(priv, (FAR struct accel_gyro_st_s *)arg);
+          bmi085_set_data(priv, (FAR struct accel_gyro_st_s **)arg);
         }
         break;
 
@@ -208,7 +208,6 @@ static void bmi085_worker(FAR void *arg)
   /* Get the global interrupt status */
 
   regval =  bmi085_getreg8(priv, priv->config->acc_addr, ACCEL_INT_STAT_1);
-  // regval =  bmi085_getreg8(priv, priv->config->acc_addr, ACCEL_DRDY_ADDR);
 
   /* Check for a data ready interrupt */
 
