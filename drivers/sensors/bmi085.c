@@ -318,19 +318,19 @@ int bmi085_register(FAR const char *devpath, FAR struct spi_dev_s *dev,
   priv->config = config;
 
   #ifdef CONFIG_SENSORS_BMI085_I2C
-  priv->i2c = dev;
-  priv->config->acc_addr = BMI085_ACC_I2C_ADDR;
-  priv->config->gyro_addr = BMI085_GYRO_I2C_ADDR;
-  priv->config->freq = BMI085_I2C_FREQ;
+    priv->i2c = dev;
+    priv->config->acc_addr = BMI085_ACC_I2C_ADDR;
+    priv->config->gyro_addr = BMI085_GYRO_I2C_ADDR;
+    priv->config->freq = BMI085_I2C_FREQ;
   #endif
 
   /* Read and verify the BMI085 device ID */
   ret = bmi085_checkid(priv);
   if (ret < 0)
     {
-    snerr("Wrong Device ID!\n");
-    kmm_free(priv);
-    return ret;
+      snerr("Wrong Device ID!\n");
+      kmm_free(priv);
+      return ret;
     }
 
   /* Attach the BMI085 gpio callbacks. */

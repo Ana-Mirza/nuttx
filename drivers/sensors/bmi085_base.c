@@ -426,8 +426,6 @@ void bmi085_enable_irq(FAR struct bmi085_dev_s *priv, bool enable)
     /* Map pins for INT1 */
     bmi085_accel_map_int1(priv);
 
-    priv->status = ACTIVITY;
-
     sninfo("bmi085_enable_irq: eabled interrupts.\n");
   }
 }

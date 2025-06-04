@@ -346,6 +346,19 @@ struct bmi085_dev_s
   struct accel_gyro_st_s sample;       /* Last sampled data */
 };
 
+// struct bmi085_dev_s
+// {
+//   #ifdef CONFIG_SENSORS_BMI160_I2C
+//   FAR struct i2c_master_s *i2c; /* I2C interface */
+//   int freq;                     /* Frequency <= 3.4MHz */
+
+//   #else /* CONFIG_SENSORS_BMI160_SPI */
+//     FAR struct spi_dev_s *spi;    /* SPI interface */
+
+//   #endif
+//   mutex_t devlock;
+// };
+
 #define GET_FIELD(regname,value) ((value & regname##_MASK) >> regname##_POS)
 #define	SET_FIELD(regval,regname,value) ((regval & ~regname##_MASK) | ((value << regname##_POS) & regname##_MASK))
 

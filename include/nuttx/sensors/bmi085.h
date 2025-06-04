@@ -104,7 +104,8 @@ struct i2c_master_s;
 
 typedef CODE void (*bmi085_handler_t)(int irq, void *context,
   FAR void *arg);
-  
+
+typedef int (*bmi085_attach)(xcpt_t handler, FAR void *arg);
 
 struct bmi085_config_s
 {
@@ -130,9 +131,11 @@ int  (*attach)(FAR struct bmi085_config_s *state,
                 FAR void *arg);
 void (*enable)(FAR struct bmi085_config_s *state, bool enable);
 void (*clear)(FAR struct bmi085_config_s *state);
-};
+//////////////////////////////////////////////////
 
-typedef FAR void *BMI085_HANDLE;
+bmi085_attach gy_attach;  /* Attach gyro interrupt (NULL for kthread) */
+bmi085_attach xl_attach;  /* Attach accel interrupt (NULL for kthread) */
+};
 
 /****************************************************************************
 * Public Function Prototypes
