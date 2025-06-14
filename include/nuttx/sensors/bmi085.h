@@ -167,7 +167,8 @@ extern "C"
 
 #ifdef CONFIG_SENSORS_BMI085_I2C
 #  ifdef CONFIG_SENSORS_BMI085_UORB
-int bmi085_register_uorb(int devno, FAR struct i2c_master_s *dev);
+int bmi085_register_uorb(int devno, FAR struct i2c_master_s *dev,
+  FAR struct bmi085_config_s *config);
 #  else
 int bmi085_register(FAR const char *devpath, FAR struct i2c_master_s *dev, 
   FAR struct bmi085_config_s *config);
