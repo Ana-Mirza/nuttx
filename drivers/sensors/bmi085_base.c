@@ -344,9 +344,9 @@ void bmi085_acc_read(FAR struct bmi085_dev_s *priv, FAR struct accel_gyro_st_s *
   sninfo("Data 16-bit ACC_RANGE_MG--->: %d\n", accel_range_mg);
 
   float scale = (float)accel_range_mg * 1000 / 32768.0f;
-  accel_p->x = data[0] * scale;
-  accel_p->y = data[1] * scale;
-  accel_p->z = data[2] * scale;
+  accel_p->x = (int16_t)(data[0] * scale);
+  accel_p->y = (int16_t)(data[1] * scale);
+  accel_p->z = (int16_t)(data[2] * scale);
 
   sninfo("Data 16-bit ACC_X--->: %d mg\n", data[0]);
   sninfo("Data 16-bit ACC_Y--->: %d mg\n", data[1]);
