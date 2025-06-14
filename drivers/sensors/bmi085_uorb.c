@@ -141,7 +141,7 @@ static const struct sensor_ops_s g_bmi085_gyro_ops =
 
 static const struct bmi085_odr_s g_bmi085_gyro_odr[] =
 {
-	{ GYRO_ODR_100HZ_BW_12HZ,    10000 },  /* 100 Hz */
+  { GYRO_ODR_100HZ_BW_12HZ,    10000 },  /* 100 Hz */
   { GYRO_ODR_100HZ_BW_32HZ,    10000 },  /* 100 Hz */
   { GYRO_ODR_200HZ_BW_23HZ,     5000 },  /* 200 Hz */
   { GYRO_ODR_200HZ_BW_64HZ,     5000 },  /* 200 Hz */
@@ -153,16 +153,14 @@ static const struct bmi085_odr_s g_bmi085_gyro_odr[] =
 
 static const struct bmi085_odr_s g_bmi085_accel_odr[] =
 {
-	{
-		{ ACCEL_ODR_12_5HZ,   80000 }, /* 12.5 Hz = 80.0 ms */
-		{ ACCEL_ODR_25_HZ,     40000 }, /* 25 Hz = 40.0 ms */
-		{ ACCEL_ODR_50_HZ,     20000 }, /* 50 Hz = 20.0 ms */
-		{ ACCEL_ODR_100_HZ,    10000 }, /* 100 Hz = 10.0 ms */
-		{ ACCEL_ODR_200_HZ,     5000 }, /* 200 Hz = 5.0 ms */
-		{ ACCEL_ODR_400_HZ,     2500 }, /* 400 Hz = 2.5 ms */
-		{ ACCEL_ODR_800_HZ,     1250 }, /* 800 Hz = 1.25 ms */
-		{ ACCEL_ODR_1600_HZ,     625 }, /* 1600 Hz = 0.625 ms */
-	};
+	{ ACCEL_ODR_12_5HZ,   80000 }, /* 12.5 Hz = 80.0 ms */
+	{ ACCEL_ODR_25_HZ,     40000 }, /* 25 Hz = 40.0 ms */
+	{ ACCEL_ODR_50_HZ,     20000 }, /* 50 Hz = 20.0 ms */
+	{ ACCEL_ODR_100_HZ,    10000 }, /* 100 Hz = 10.0 ms */
+	{ ACCEL_ODR_200_HZ,     5000 }, /* 200 Hz = 5.0 ms */
+	{ ACCEL_ODR_400_HZ,     2500 }, /* 400 Hz = 2.5 ms */
+	{ ACCEL_ODR_800_HZ,     1250 }, /* 800 Hz = 1.25 ms */
+	{ ACCEL_ODR_1600_HZ,     625 }, /* 1600 Hz = 0.625 ms */
 };
 
 /****************************************************************************
@@ -238,7 +236,9 @@ static void bmi085_accel_enable(FAR struct bmi085_dev_uorb_s *priv,
 													nitems(g_bmi085_accel_odr));
 			bmi085_putreg8(&priv->dev, priv->addr, ACCEL_ODR_ADDR,
 										ACCEL_NORMAL_AVG4 | g_bmi085_accel_odr[idx].regval);
-			sninfo("BMI085 enabled.\n");
+
+			priv->enabled = true;
+			sninfo("BMI085 acc enabled.\n");
 		}
 	else
 		{
@@ -284,12 +284,10 @@ static void bmi085_gyro_enable(FAR struct bmi085_dev_uorb_s *priv,
 
 			idx = bmi085_findodr(priv->interval, g_bmi085_gyro_odr,
 													nitems(g_bmi085_gyro_odr));
-			bmi085_putreg8(&priv->dev, pirv->addr, GYRO_ODR_ADDR,
+			bmi085_putreg8(&priv->dev, priv->addr, GYRO_ODR_ADDR,
 										g_bmi085_gyro_odr[idx].regval);
-
-			// work_queue(HPWORK, &priv->work,
-			// 					bmi085_gyro_worker, priv,
-			// 					priv->interval / USEC_PER_TICK);
+			priv->enabled = true;
+			sninfo("BMI085 gyro enabled.\n");
 		}
 	else
 		{
@@ -479,7 +477,7 @@ static int gyro_int_enable(FAR struct bmi085_dev_uorb_s *dev, bool enable)
 	// 												disable_bits);
 
 
-	dev->gyro.interrupts = enable; /* We succeeded, update state */
+	dev->interrupts = enable; /* Update state */
 	return err;
 }
  
@@ -499,14 +497,15 @@ static int accel_int_enable(FAR struct bmi085_dev_uorb_s *priv, bool enable)
 	if (enable) {
 
 		/* Configure acc output pin INT1*/
-		bmi085_pin_mode_int1(priv->dev);
+		bmi085_pin_mode_int1(&priv->dev);
 
 		/* Map pins for INT1 */
-		bmi085_accel_map_int1(priv->dev);
+		bmi085_accel_map_int1(&priv->dev);
 
-		dev->accel.interrupts = enable; /* We succeeded, update state */
 		sninfo("accel_int_enable: enabled interrupts.\n");
 	}
+
+	priv->interrupts = enable; /* Update state */
 
 	return err;
 }
@@ -559,11 +558,11 @@ static int bmi085_read_gyro(FAR struct bmi085_dev_uorb_s *priv,
 	float gyro_scale = 2000.0f / 32768.0f * D2R;
 
 	data->x =
-	(float)(raw_data[1]) * gyro_scale;
+	(float)(gyro_data[1]) * gyro_scale;
 	data->y =
-	(float)(raw_data[2]) * gyro_scale;
+	(float)(gyro_data[2]) * gyro_scale;
 	data->z =
-	(float)(raw_data[3]) * gyro_scale;
+	(float)(gyro_data[3]) * gyro_scale;
 
 	return err;
 }
@@ -637,7 +636,7 @@ static int push_gyro(FAR struct bmi085_dev_uorb_s *dev)
 			goto early_ret;
 		}
 
-	dev->gyro.lower.push_event(dev->lower.priv, &data, sizeof(data));
+	dev->lower.push_event(dev->lower.priv, &data, sizeof(data));
 
 early_ret:
 	nxmutex_unlock(&dev->lock);
@@ -669,7 +668,7 @@ static int push_accel(FAR struct bmi085_dev_uorb_s *dev)
 			goto early_ret;
 		}
 
-	dev->accel.lower.push_event(dev->lower.priv, &data, sizeof(data));
+	dev->lower.push_event(dev->lower.priv, &data, sizeof(data));
 
 early_ret:
 	nxmutex_unlock(&dev->lock);
@@ -748,7 +747,7 @@ static int accel_int_handler(int irq, FAR void *context, FAR void *arg)
 
 	/* Start high priority worker thread */
 
-	err = work_queue(HPWORK, &dev->accel.work, &accel_worker, priv, 0);
+	err = work_queue(HPWORK, &priv->work, &accel_worker, priv, 0);
 
 	if (err < 0)
 		{
@@ -811,15 +810,15 @@ static int gyro_thread(int argc, char **argv)
  
 static int accel_thread(int argc, char **argv)
 {
-	FAR struct bmi085_dev_s *dev =
-			(FAR struct bmi085_dev_s *)((uintptr_t)strtoul(argv[1], NULL, 16));
+	FAR struct bmi085_dev_uorb_s *dev =
+			(FAR struct bmi085_dev_uorb_s *)((uintptr_t)strtoul(argv[1], NULL, 16));
 	int err = 0;
 
 	while (true)
 		{
 			/* If the sensor is disabled we wait indefinitely */
 
-			if (!dev->accel.enabled)
+			if (!dev->enabled)
 				{
 					err = nxsem_wait(&dev->run);
 					if (err < 0)
@@ -880,7 +879,7 @@ static int bmi085_register_accel(int devno,
 	FAR struct bmi085_dev_uorb_s *priv;
 	FAR char *argv[2];
   char arg1[32];
-	int ret;
+	int ret = OK;
 
 	/* Sanity check */
 
@@ -907,11 +906,11 @@ static int bmi085_register_accel(int devno,
 #ifdef CONFIG_SENSORS_BMI085_I2C
 	priv->dev.i2c  = dev;
 	priv->addr = BMI085_ACC_I2C_ADDR;
-	priv->dev.freq = BMI085_I2C_FREQ;
-	priv->config->freq = BMI085_I2C_FREQ;
-	priv->dev.config = config;
 	config->acc_addr = BMI085_ACC_I2C_ADDR;
 	config->gyro_addr = BMI085_GYRO_I2C_ADDR;
+	config->freq = BMI085_I2C_FREQ;
+	priv->dev.config = config;
+	priv->config = config;
 
 #else /* CONFIG_SENSORS_BMI085_SPI */
 	priv->dev.spi = dev;
@@ -922,7 +921,6 @@ static int bmi085_register_accel(int devno,
 	priv->lower.uncalibrated = true;
 	priv->interval = BMI085_DEFAULT_INTERVAL;
 	priv->lower.nbuffer = 1;
-	priv->config = config;
 
 	/* Create mutex */
 
@@ -933,14 +931,14 @@ static int bmi085_register_accel(int devno,
       goto free_mem;
     }
 
-	 /* Create accel semaphore */
+		/* Create accel semaphore */
 
-	 return = nxsem_init(&priv->run, 0, 0);
-	 if (ret < 0)
-		 {
-			 snerr("Failed to initialize accel semaphore: %d\n", ret);
-			 goto del_sem;
-		 }
+		ret = nxsem_init(&priv->run, 0, 0);
+		if (ret < 0)
+			{
+				snerr("Failed to initialize accel semaphore: %d\n", ret);
+				goto del_sem;
+			}
 
 	/* Read and verify the deviceid */
 
@@ -967,7 +965,7 @@ static int bmi085_register_accel(int devno,
       /* Register accel interrupt handler */
 
       ret = config->xl_attach(accel_int_handler, priv);
-      if (err < 0)
+      if (ret < 0)
         {
           snerr("Failed to register accel interrupt handler: %d\n", ret);
           goto unreg_handler;
@@ -976,7 +974,7 @@ static int bmi085_register_accel(int devno,
       ret = accel_int_enable(priv, true);
       if (ret < 0)
         {
-          snerr("Failed to register accel interrupt handler: %d\n", err);
+          snerr("Failed to register accel interrupt handler: %d\n", ret);
           goto unreg_handler;
         }
 
@@ -989,13 +987,13 @@ static int bmi085_register_accel(int devno,
       snprintf(arg1, 16, "%p", priv);
       argv[0] = arg1;
       argv[1] = NULL;
-      err = kthread_create("bmi085_xl_thread", SCHED_PRIORITY_DEFAULT,
-                           CONFIG_SENSORS_BMI085_THREAD_STACKSIZE,
+      ret = kthread_create("bmi085_xl_thread", SCHED_PRIORITY_DEFAULT,
+                           CONFIG_EXAMPLES_BMI085_STACKSIZE,
                            accel_thread, argv);
-      if (err < 0)
+      if (ret < 0)
         {
-          snerr("Failed to register accel polling thread: %d\n", err);
-          goto unreg_gyro_handler;
+          snerr("Failed to register accel polling thread: %d\n", ret);
+          goto unreg_handler;
         }
 
       sninfo("BMI085 accel using polling thread.");
@@ -1011,7 +1009,7 @@ static int bmi085_register_accel(int devno,
 	unreg_accel:
 		sensor_unregister(&priv->lower, devno);
 	del_sem:
-		nxsem_destroy(&priv->accel.run);
+		nxsem_destroy(&priv->run);
 	del_mutex:
 		nxmutex_destroy(&priv->lock);
 	free_mem:
@@ -1055,7 +1053,7 @@ static int bmi085_register_gyro(int devno,
 {
 	FAR struct bmi085_dev_uorb_s *priv;
 	FAR char *argv[2];
-  char arg1[32];
+	char arg1[32];
 	int ret ;
 
 	/* Sanity check */
@@ -1083,7 +1081,11 @@ static int bmi085_register_gyro(int devno,
 #ifdef CONFIG_SENSORS_BMI085_I2C
 	priv->dev.i2c  = dev;
 	priv->addr = BMI085_GYRO_I2C_ADDR;
-	priv->dev.freq = BMI085_I2C_FREQ;
+	config->acc_addr = BMI085_ACC_I2C_ADDR;
+	config->gyro_addr = BMI085_GYRO_I2C_ADDR;
+	config->freq = BMI085_I2C_FREQ;
+	priv->dev.config = config;
+	priv->config = config;
 
 #else /* CONFIG_SENSORS_BMI085_SPI */
 	priv->dev.spi = dev;
@@ -1094,7 +1096,6 @@ static int bmi085_register_gyro(int devno,
 	priv->lower.uncalibrated = true;
 	priv->interval = BMI085_DEFAULT_INTERVAL;
 	priv->lower.nbuffer = 1;
-	priv->config = config;
 
 	/* Create mutex */
 
@@ -1107,14 +1108,14 @@ static int bmi085_register_gyro(int devno,
 
 	 /* Create gyro semaphore */
 
-	 return = nxsem_init(&priv->run, 0, 0);
+	 ret = nxsem_init(&priv->run, 0, 0);
 	 if (ret < 0)
 		 {
 			 snerr("Failed to initialize accel semaphore: %d\n", ret);
 			 goto del_sem;
 		 }
 
-	/* Read and verify the deviceid */
+	/* Read and verify the device id */
 
 	ret = bmi085_checkid(&priv->dev);
 	if (ret < 0)
@@ -1139,7 +1140,7 @@ static int bmi085_register_gyro(int devno,
       /* Register gyro interrupt handler */
 
       ret = config->xl_attach(gyro_int_handler, priv);
-      if (err < 0)
+      if (ret < 0)
         {
           snerr("Failed to register accel interrupt handler: %d\n", ret);
           goto unreg_handler;
@@ -1161,13 +1162,13 @@ static int bmi085_register_gyro(int devno,
       snprintf(arg1, 16, "%p", priv);
       argv[0] = arg1;
       argv[1] = NULL;
-      err = kthread_create("bmi085_xl_thread", SCHED_PRIORITY_DEFAULT,
-                           CONFIG_SENSORS_BMI085_THREAD_STACKSIZE,
+      ret = kthread_create("bmi085_xl_thread", SCHED_PRIORITY_DEFAULT,
+                           CONFIG_EXAMPLES_BMI085_STACKSIZE,
                            accel_thread, argv);
-      if (err < 0)
+      if (ret < 0)
         {
-          snerr("Failed to register accel polling thread: %d\n", err);
-          goto unreg_gyro_handler;
+          snerr("Failed to register accel polling thread: %d\n", ret);
+          goto unreg_handler;
         }
 
       sninfo("BMI085 accel using polling thread.");
@@ -1180,7 +1181,7 @@ static int bmi085_register_gyro(int devno,
 			{
 				kthread_delete(ret);
 			}
-	unreg_gyro:
+	unreg_accel:
 		sensor_unregister(&priv->lower, devno);
 	del_sem:
 		nxsem_destroy(&priv->run);
