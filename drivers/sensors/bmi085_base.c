@@ -274,11 +274,16 @@ void bmi085_set_normal_imu(FAR struct bmi085_dev_s *priv)
   bmi085_putreg8(priv, priv->config->gyro_addr, GYRO_LPM1, GYRO_PWR_NORMAL);
   up_mdelay(30);
 
+  /* Set accel sensitivity */
+  bmi085_putreg8(priv, priv->config->acc_addr, ACCEL_RANGE_ADDR, ACCEL_RANGE_16G);
+
   /* Set accel & gyro output data rate. */
   bmi085_putreg8(priv, priv->config->acc_addr, ACCEL_ODR_ADDR,
       ACCEL_NORMAL_AVG4 | ACCEL_ODR_50_HZ);
   bmi085_putreg8(priv, priv->config->gyro_addr, GYRO_ODR_ADDR,
       GYRO_ODR_100HZ_BW_32HZ);
+
+  sninfo("bmi085_set_normal_imu: configured acc and gyro.");
 }
 
 /****************************************************************************
@@ -348,6 +353,7 @@ void bmi085_acc_read(FAR struct bmi085_dev_s *priv, FAR struct accel_gyro_st_s *
   sninfo("Data 16-bit ACC_Z--->: %d mg\n", data[2]);
 
   /* Time data */
+  *sensor_time = 0;
   *sensor_time = (acc_data[8] << 16) | (acc_data[7] << 8) | acc_data[6];
 }
 
